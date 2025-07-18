@@ -56,6 +56,8 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				brand: "hsl(var(--brand))",
+				"brand-foreground": "hsl(var(--brand-foreground))",
 				neon: {
 					green: '#00ff88',
 					blue: '#0088ff',
@@ -101,6 +103,14 @@ export default {
 					'0%': { backgroundPosition: '0% 50%' },
 					'50%': { backgroundPosition: '100% 50%' },
 					'100%': { backgroundPosition: '0% 50%' }
+				},
+				appear: {
+					"0%": { opacity: "0", transform: "translateY(10px)" },
+					"100%": { opacity: "1", transform: "translateY(0)" }
+				},
+				"appear-zoom": {
+					"0%": { opacity: "0", transform: "scale(0.95)" },
+					"100%": { opacity: "1", transform: "scale(1)" }
 				}
 			},
 			animation: {
@@ -108,11 +118,16 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'float': 'float 6s ease-in-out infinite',
 				'glow': 'glow 2s ease-in-out infinite',
-				'gradient': 'gradient 8s ease infinite'
+				'gradient': 'gradient 8s ease infinite',
+				appear: "appear 0.5s ease-out forwards",
+				"appear-zoom": "appear-zoom 0.5s ease-out forwards"
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
 				'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+			},
+			maxWidth: {
+				container: '1200px',
 			}
 		}
 	},

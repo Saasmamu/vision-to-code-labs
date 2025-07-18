@@ -108,10 +108,14 @@ export default {
 					"0%": { opacity: "0", transform: "translateY(10px)" },
 					"100%": { opacity: "1", transform: "translateY(0)" }
 				},
-				"appear-zoom": {
-					"0%": { opacity: "0", transform: "scale(0.95)" },
-					"100%": { opacity: "1", transform: "scale(1)" }
-				}
+        "appear-zoom": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" }
+        },
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(calc(-100% - var(--gap)))' }
+        }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
@@ -120,7 +124,8 @@ export default {
 				'glow': 'glow 2s ease-in-out infinite',
 				'gradient': 'gradient 8s ease infinite',
 				appear: "appear 0.5s ease-out forwards",
-				"appear-zoom": "appear-zoom 0.5s ease-out forwards"
+				"appear-zoom": "appear-zoom 0.5s ease-out forwards",
+				marquee: 'marquee var(--duration) linear infinite',
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

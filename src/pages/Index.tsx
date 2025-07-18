@@ -37,9 +37,9 @@ const Index = () => {
           },
         ]}
         image={{
-          light: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=800&fit=crop&crop=entropy&auto=format&q=80",
-          dark: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1200&h=800&fit=crop&crop=entropy&auto=format&q=80",
-          alt: "AI App Development Dashboard Preview",
+          light: "/lovable-uploads/952920fc-3468-45b0-b1a0-34dc30782c9f.png",
+          dark: "/lovable-uploads/952920fc-3468-45b0-b1a0-34dc30782c9f.png",
+          alt: "AI Sales Dashboard Preview",
         }}
       />
       <USPSection />

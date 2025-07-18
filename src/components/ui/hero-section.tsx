@@ -65,10 +65,10 @@ export function HeroSection({
             </Badge>
           )}
 
-          {/* Title */}
-          <h1 className="relative z-10 inline-block animate-appear bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-4xl font-semibold leading-tight text-transparent drop-shadow-2xl sm:text-6xl sm:leading-tight md:text-8xl md:leading-tight">
+          {/* Title - Changed from h1 to h3 */}
+          <h3 className="relative z-10 inline-block animate-appear bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-2xl font-semibold leading-tight text-transparent drop-shadow-2xl sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight">
             {title}
-          </h1>
+          </h3>
 
           {/* Description */}
           <p className="text-md relative z-10 max-w-[550px] animate-appear font-medium text-muted-foreground opacity-0 delay-100 sm:text-xl">
@@ -101,6 +101,7 @@ export function HeroSection({
                   alt={image.alt}
                   width={1248}
                   height={765}
+                  className="w-full h-auto"
                 />
               </Mockup>
             </MockupFrame>

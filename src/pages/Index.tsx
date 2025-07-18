@@ -32,7 +32,7 @@ const Index = () => {
           {
             text: "Browse Ready-Made Apps",
             href: "#services",
-            variant: "outline",
+            variant: "default",
             icon: <Icons.gitHub className="h-5 w-5" />,
           },
         ]}

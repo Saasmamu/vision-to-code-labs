@@ -32,10 +32,9 @@ export const cloudProps: Omit<ICloud, "children"> = {
     clickToFront: 500,
     tooltipDelay: 0,
     outlineColour: "#0000",
-    maxSpeed: 0.02,
-    minSpeed: 0.01,
-    dragControl: false,
-    freezeActive: true,
+    maxSpeed: 0.04,
+    minSpeed: 0.02,
+    // dragControl: false,
   },
 }
 
@@ -49,7 +48,7 @@ export const renderCustomIcon = (icon: SimpleIcon, theme: string) => {
     bgHex,
     fallbackHex,
     minContrastRatio,
-    size: 36,
+    size: 42,
     aProps: {
       href: undefined,
       target: undefined,
@@ -67,47 +66,24 @@ type IconData = Awaited<ReturnType<typeof fetchSimpleIcons>>
 
 export function IconCloud({ iconSlugs }: DynamicCloudProps) {
   const [data, setData] = useState<IconData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const { theme } = useTheme()
 
   useEffect(() => {
-    const loadIcons = async () => {
-      try {
-        setIsLoading(true)
-        const iconData = await fetchSimpleIcons({ slugs: iconSlugs })
-        setData(iconData)
-      } catch (error) {
-        console.error('Failed to load icons:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadIcons()
+    fetchSimpleIcons({ slugs: iconSlugs }).then(setData)
   }, [iconSlugs])
 
   const renderedIcons = useMemo(() => {
-    if (!data || isLoading) return null
+    if (!data) return null
 
     return Object.values(data.simpleIcons).map((icon) =>
-      renderCustomIcon(icon, theme || "dark"),
+      renderCustomIcon(icon, theme || "light"),
     )
-  }, [data, theme, isLoading])
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 w-full">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+  }, [data, theme])
 
   return (
-    <div className="relative">
-      {/* @ts-ignore */}
-      <Cloud {...cloudProps}>
-        <>{renderedIcons}</>
-      </Cloud>
-    </div>
+    // @ts-ignore
+    <Cloud {...cloudProps}>
+      <>{renderedIcons}</>
+    </Cloud>
   )
 }

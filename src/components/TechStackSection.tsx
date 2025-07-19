@@ -2,7 +2,7 @@
 import { IconCloud } from "@/components/ui/interactive-icon-cloud"
 
 const TechStackSection = () => {
-  // Reduced icon list for better performance
+  // Enhanced icon list for better visual impact
   const techStackIcons = [
     "typescript",
     "javascript",
@@ -22,7 +22,10 @@ const TechStackSection = () => {
     "firebase",
     "supabase",
     "figma",
-    "openai"
+    "openai",
+    "express",
+    "prisma",
+    "nginx"
   ]
 
   return (

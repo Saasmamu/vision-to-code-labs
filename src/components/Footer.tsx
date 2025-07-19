@@ -9,17 +9,18 @@ const Footer = () => {
   ];
 
   const quickLinks = [
-    { name: "About Us", href: "#" },
-    { name: "Services", href: "#" },
-    { name: "Portfolio", href: "#" },
-    { name: "Contact", href: "#" }
+    { name: "Home", href: "/" },
+    { name: "About Us", href: "/about" },
+    { name: "Services", href: "/services" },
+    { name: "Portfolio", href: "/portfolio" },
+    { name: "Contact", href: "/contact" }
   ];
 
   const services = [
-    { name: "Custom Apps", href: "#" },
-    { name: "AI Solutions", href: "#" },
-    { name: "SaaS Platforms", href: "#" },
-    { name: "Mobile Apps", href: "#" }
+    { name: "Custom Apps", href: "/services#custom-apps" },
+    { name: "AI Solutions", href: "/services#ai-solutions" },
+    { name: "SaaS Platforms", href: "/services#saas-platforms" },
+    { name: "Mobile Apps", href: "/services#mobile-apps" }
   ];
 
   return (

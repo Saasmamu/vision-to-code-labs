@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +45,7 @@ const AppDetail = () => {
       basic: {
         name: "Basic",
         price: 19.99,
+        popular: false,
         features: [
           "Up to 1,000 conversations/month",
           "5 languages supported",
@@ -71,6 +71,7 @@ const AppDetail = () => {
       enterprise: {
         name: "Enterprise",
         price: 49.99,
+        popular: false,
         features: [
           "Unlimited conversations",
           "25+ languages supported",

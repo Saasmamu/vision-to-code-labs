@@ -9,10 +9,13 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 import LeadMagnetSection from "@/components/LeadMagnetSection";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
+import TechStackSection from "@/components/TechStackSection";
+import Navigation from "@/components/Navigation";
 
 const Index = () => {
   return (
     <main className="min-h-screen">
+      <Navigation />
       <HeroSection
         badge={{
           text: "Trusted by 100+ Entrepreneurs",
@@ -39,11 +42,12 @@ const Index = () => {
         image={{
           light: "/lovable-uploads/952920fc-3468-45b0-b1a0-34dc30782c9f.png",
           dark: "/lovable-uploads/952920fc-3468-45b0-b1a0-34dc30782c9f.png",
-          alt: "AI Sales Dashboard Preview",
+          alt: "AI App Development Dashboard Preview",
         }}
       />
       <USPSection />
       <ServicesSection />
+      <TechStackSection />
       <WhyChooseUsSection />
       <CTASection />
       <TestimonialsSection />

@@ -32,8 +32,10 @@ export const cloudProps: Omit<ICloud, "children"> = {
     clickToFront: 500,
     tooltipDelay: 0,
     outlineColour: "#0000",
-    maxSpeed: 0.04,
-    minSpeed: 0.02,
+    maxSpeed: 0.02,
+    minSpeed: 0.01,
+    dragControl: false,
+    freezeActive: true,
   },
 }
 
@@ -47,7 +49,7 @@ export const renderCustomIcon = (icon: SimpleIcon, theme: string) => {
     bgHex,
     fallbackHex,
     minContrastRatio,
-    size: 42,
+    size: 36,
     aProps: {
       href: undefined,
       target: undefined,
@@ -65,24 +67,47 @@ type IconData = Awaited<ReturnType<typeof fetchSimpleIcons>>
 
 export function IconCloud({ iconSlugs }: DynamicCloudProps) {
   const [data, setData] = useState<IconData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const { theme } = useTheme()
 
   useEffect(() => {
-    fetchSimpleIcons({ slugs: iconSlugs }).then(setData)
+    const loadIcons = async () => {
+      try {
+        setIsLoading(true)
+        const iconData = await fetchSimpleIcons({ slugs: iconSlugs })
+        setData(iconData)
+      } catch (error) {
+        console.error('Failed to load icons:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadIcons()
   }, [iconSlugs])
 
   const renderedIcons = useMemo(() => {
-    if (!data) return null
+    if (!data || isLoading) return null
 
     return Object.values(data.simpleIcons).map((icon) =>
-      renderCustomIcon(icon, theme || "light"),
+      renderCustomIcon(icon, theme || "dark"),
     )
-  }, [data, theme])
+  }, [data, theme, isLoading])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 w-full">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   return (
-    // @ts-ignore
-    <Cloud {...cloudProps}>
-      <>{renderedIcons}</>
-    </Cloud>
+    <div className="relative">
+      {/* @ts-ignore */}
+      <Cloud {...cloudProps}>
+        <>{renderedIcons}</>
+      </Cloud>
+    </div>
   )
 }

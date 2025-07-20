@@ -104,9 +104,9 @@ const AdminDashboard = () => {
           id,
           amount,
           created_at,
-          apps(name),
-          pricing_plans(name),
-          profiles(full_name)
+          apps!inner(name),
+          pricing_plans!inner(name),
+          profiles!inner(full_name)
         `)
         .eq('status', 'paid')
         .order('created_at', { ascending: false })
@@ -114,10 +114,10 @@ const AdminDashboard = () => {
 
       setRecentSales(salesData?.map(sale => ({
         id: sale.id,
-        app_name: sale.apps?.name || 'Unknown App',
-        user_email: sale.profiles?.full_name || 'Unknown User',
+        app_name: Array.isArray(sale.apps) ? sale.apps[0]?.name || 'Unknown App' : sale.apps?.name || 'Unknown App',
+        user_email: Array.isArray(sale.profiles) ? sale.profiles[0]?.full_name || 'Unknown User' : sale.profiles?.full_name || 'Unknown User',
         amount: sale.amount,
-        plan_name: sale.pricing_plans?.name || 'Unknown Plan',
+        plan_name: Array.isArray(sale.pricing_plans) ? sale.pricing_plans[0]?.name || 'Unknown Plan' : sale.pricing_plans?.name || 'Unknown Plan',
         created_at: sale.created_at
       })) || []);
 

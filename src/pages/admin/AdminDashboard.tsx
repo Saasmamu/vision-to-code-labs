@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -97,16 +98,16 @@ const AdminDashboard = () => {
         avgRating: Number(avgRating.toFixed(1))
       });
 
-      // Fetch recent sales
+      // Fetch recent sales - Fixed the join syntax
       const { data: salesData } = await supabase
         .from('orders')
         .select(`
           id,
           amount,
           created_at,
-          app:apps(name),
-          plan:pricing_plans(name),
-          user:profiles!orders_user_id_fkey(full_name)
+          apps!inner(name),
+          pricing_plans!inner(name),
+          profiles!inner(full_name)
         `)
         .eq('status', 'paid')
         .order('created_at', { ascending: false })
@@ -114,10 +115,10 @@ const AdminDashboard = () => {
 
       setRecentSales(salesData?.map(sale => ({
         id: sale.id,
-        app_name: sale.app?.name || 'Unknown App',
-        user_email: sale.user?.full_name || 'Unknown User',
+        app_name: sale.apps?.name || 'Unknown App',
+        user_email: sale.profiles?.full_name || 'Unknown User',
         amount: sale.amount,
-        plan_name: sale.plan?.name || 'Unknown Plan',
+        plan_name: sale.pricing_plans?.name || 'Unknown Plan',
         created_at: sale.created_at
       })) || []);
 

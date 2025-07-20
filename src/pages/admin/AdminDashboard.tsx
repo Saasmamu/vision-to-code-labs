@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -98,16 +97,16 @@ const AdminDashboard = () => {
         avgRating: Number(avgRating.toFixed(1))
       });
 
-      // Fetch recent sales - Fixed the join syntax
+      // Fetch recent sales - Fixed the data access
       const { data: salesData } = await supabase
         .from('orders')
         .select(`
           id,
           amount,
           created_at,
-          apps!inner(name),
-          pricing_plans!inner(name),
-          profiles!inner(full_name)
+          apps(name),
+          pricing_plans(name),
+          profiles(full_name)
         `)
         .eq('status', 'paid')
         .order('created_at', { ascending: false })

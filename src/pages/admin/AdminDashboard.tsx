@@ -1,11 +1,12 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { 
   Users, 
   Package, 
@@ -17,29 +18,159 @@ import {
   Star
 } from "lucide-react";
 
+interface DashboardStats {
+  totalUsers: number;
+  totalApps: number;
+  monthlyRevenue: number;
+  activeSubscriptions: number;
+  totalDownloads: number;
+  avgRating: number;
+}
+
+interface RecentSale {
+  id: string;
+  app_name: string;
+  user_email: string;
+  amount: number;
+  plan_name: string;
+  created_at: string;
+}
+
+interface TopApp {
+  name: string;
+  downloads: number;
+  revenue: number;
+  rating: number;
+}
+
 const AdminDashboard = () => {
-  const [stats] = useState({
-    totalUsers: 1247,
-    totalApps: 23,
-    monthlyRevenue: 45670,
-    activeSubscriptions: 892,
-    totalDownloads: 15420,
-    avgRating: 4.7
+  const { profile } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalApps: 0,
+    monthlyRevenue: 0,
+    activeSubscriptions: 0,
+    totalDownloads: 0,
+    avgRating: 0
   });
+  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
+  const [topApps, setTopApps] = useState<TopApp[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentSales = [
-    { id: 1, app: "AI Chat Assistant", user: "john@example.com", amount: 29.99, plan: "Pro" },
-    { id: 2, app: "Task Manager Pro", user: "sarah@example.com", amount: 19.99, plan: "Basic" },
-    { id: 3, app: "Analytics Dashboard", user: "mike@example.com", amount: 49.99, plan: "Enterprise" },
-    { id: 4, app: "Email Automation", user: "lisa@example.com", amount: 39.99, plan: "Pro" },
-  ];
+  useEffect(() => {
+    if (profile?.role === 'admin') {
+      fetchDashboardData();
+    }
+  }, [profile]);
 
-  const topApps = [
-    { name: "AI Chat Assistant", downloads: 3421, revenue: 8420, rating: 4.8 },
-    { name: "Task Manager Pro", downloads: 2890, revenue: 6730, rating: 4.6 },
-    { name: "Analytics Dashboard", downloads: 2156, revenue: 12450, rating: 4.9 },
-    { name: "Email Automation", downloads: 1834, revenue: 5620, rating: 4.5 },
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch stats
+      const [usersCount, appsCount, ordersData, userAppsCount] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact' }),
+        supabase.from('apps').select('id, downloads, rating', { count: 'exact' }),
+        supabase.from('orders').select('amount, created_at').eq('status', 'paid'),
+        supabase.from('user_apps').select('id', { count: 'exact' }).eq('status', 'active')
+      ]);
+
+      const totalUsers = usersCount.count || 0;
+      const totalApps = appsCount.count || 0;
+      const activeSubscriptions = userAppsCount.count || 0;
+      
+      const currentMonth = new Date();
+      currentMonth.setDate(1);
+      const monthlyOrders = ordersData.data?.filter(order => 
+        new Date(order.created_at) >= currentMonth
+      ) || [];
+      const monthlyRevenue = monthlyOrders.reduce((sum, order) => sum + order.amount, 0);
+      
+      const totalDownloads = appsCount.data?.reduce((sum, app) => sum + (app.downloads || 0), 0) || 0;
+      const avgRating = appsCount.data?.length ? 
+        appsCount.data.reduce((sum, app) => sum + (app.rating || 0), 0) / appsCount.data.length : 0;
+
+      setStats({
+        totalUsers,
+        totalApps,
+        monthlyRevenue,
+        activeSubscriptions,
+        totalDownloads,
+        avgRating: Number(avgRating.toFixed(1))
+      });
+
+      // Fetch recent sales
+      const { data: salesData } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          amount,
+          created_at,
+          app:apps(name),
+          plan:pricing_plans(name),
+          user:profiles!orders_user_id_fkey(full_name)
+        `)
+        .eq('status', 'paid')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      setRecentSales(salesData?.map(sale => ({
+        id: sale.id,
+        app_name: sale.app?.name || 'Unknown App',
+        user_email: sale.user?.full_name || 'Unknown User',
+        amount: sale.amount,
+        plan_name: sale.plan?.name || 'Unknown Plan',
+        created_at: sale.created_at
+      })) || []);
+
+      // Fetch top apps
+      const { data: topAppsData } = await supabase
+        .from('apps')
+        .select('name, downloads, rating')
+        .eq('status', 'active')
+        .order('downloads', { ascending: false })
+        .limit(4);
+
+      setTopApps(topAppsData?.map(app => ({
+        name: app.name,
+        downloads: app.downloads || 0,
+        rating: app.rating || 0,
+        revenue: 0 // This would need to be calculated from orders
+      })) || []);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (profile?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-6 pt-24 pb-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-4">Access Denied</h1>
+            <p className="text-muted-foreground">You don't have permission to access this page.</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-6 pt-24 pb-12">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,12 +273,15 @@ const AdminDashboard = () => {
                   {recentSales.map((sale) => (
                     <div key={sale.id} className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
                       <div>
-                        <p className="font-medium">{sale.app}</p>
-                        <p className="text-sm text-muted-foreground">{sale.user}</p>
+                        <p className="font-medium">{sale.app_name}</p>
+                        <p className="text-sm text-muted-foreground">{sale.user_email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(sale.created_at).toLocaleDateString()}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">${sale.amount}</p>
-                        <Badge variant="secondary">{sale.plan}</Badge>
+                        <p className="font-medium">${sale.amount.toFixed(2)}</p>
+                        <Badge variant="secondary">{sale.plan_name}</Badge>
                       </div>
                     </div>
                   ))}

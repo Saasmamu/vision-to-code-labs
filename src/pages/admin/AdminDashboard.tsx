@@ -1,30 +1,27 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Package, 
-  TrendingUp, 
   DollarSign, 
-  Activity,
-  Eye,
-  Download,
-  Star
-} from "lucide-react";
+  TrendingUp,
+  Calendar,
+  Clock,
+  CheckCircle,
+  XCircle 
+} from 'lucide-react';
 
 interface DashboardStats {
   totalUsers: number;
   totalApps: number;
-  monthlyRevenue: number;
-  activeSubscriptions: number;
-  totalDownloads: number;
-  avgRating: number;
+  totalRevenue: number;
+  monthlyGrowth: number;
 }
 
 interface RecentSale {
@@ -36,329 +33,241 @@ interface RecentSale {
   created_at: string;
 }
 
-interface TopApp {
-  name: string;
-  downloads: number;
-  revenue: number;
-  rating: number;
+interface OrderData {
+  id: string;
+  amount: number;
+  created_at: string;
+  apps: { name: string } | null;
+  pricing_plans: { name: string } | null;
+  profiles: { full_name: string } | null;
 }
 
 const AdminDashboard = () => {
-  const { profile } = useAuth();
+  const { user, profile, loading } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalApps: 0,
-    monthlyRevenue: 0,
-    activeSubscriptions: 0,
-    totalDownloads: 0,
-    avgRating: 0
+    totalRevenue: 0,
+    monthlyGrowth: 0
   });
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
-  const [topApps, setTopApps] = useState<TopApp[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    if (!loading && (!user || profile?.role !== 'admin')) {
+      navigate('/');
+      return;
+    }
+
+    if (user && profile?.role === 'admin') {
       fetchDashboardData();
     }
-  }, [profile]);
+  }, [user, profile, loading, navigate]);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch stats
-      const [usersCount, appsCount, ordersData, userAppsCount] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact' }),
-        supabase.from('apps').select('id, downloads, rating', { count: 'exact' }),
-        supabase.from('orders').select('amount, created_at').eq('status', 'paid'),
-        supabase.from('user_apps').select('id', { count: 'exact' }).eq('status', 'active')
-      ]);
+      // Fetch user count
+      const { count: userCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
-      const totalUsers = usersCount.count || 0;
-      const totalApps = appsCount.count || 0;
-      const activeSubscriptions = userAppsCount.count || 0;
-      
-      const currentMonth = new Date();
-      currentMonth.setDate(1);
-      const monthlyOrders = ordersData.data?.filter(order => 
-        new Date(order.created_at) >= currentMonth
-      ) || [];
-      const monthlyRevenue = monthlyOrders.reduce((sum, order) => sum + order.amount, 0);
-      
-      const totalDownloads = appsCount.data?.reduce((sum, app) => sum + (app.downloads || 0), 0) || 0;
-      const avgRating = appsCount.data?.length ? 
-        appsCount.data.reduce((sum, app) => sum + (app.rating || 0), 0) / appsCount.data.length : 0;
+      // Fetch app count
+      const { count: appCount } = await supabase
+        .from('apps')
+        .select('*', { count: 'exact', head: true });
 
-      setStats({
-        totalUsers,
-        totalApps,
-        monthlyRevenue,
-        activeSubscriptions,
-        totalDownloads,
-        avgRating: Number(avgRating.toFixed(1))
-      });
+      // Fetch total revenue
+      const { data: revenueData } = await supabase
+        .from('orders')
+        .select('amount')
+        .eq('status', 'paid');
 
-      // Fetch recent sales - Fixed the data access
+      const totalRevenue = revenueData?.reduce((sum, order) => sum + (order.amount || 0), 0) || 0;
+
+      // Fetch recent sales with proper joins
       const { data: salesData } = await supabase
         .from('orders')
         .select(`
           id,
           amount,
           created_at,
-          apps!inner(name),
-          pricing_plans!inner(name),
-          profiles!inner(full_name)
+          apps(name),
+          pricing_plans(name),
+          profiles(full_name)
         `)
         .eq('status', 'paid')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      setRecentSales(salesData?.map(sale => ({
+      setRecentSales((salesData as OrderData[])?.map(sale => ({
         id: sale.id,
-        app_name: Array.isArray(sale.apps) ? sale.apps[0]?.name || 'Unknown App' : sale.apps?.name || 'Unknown App',
-        user_email: Array.isArray(sale.profiles) ? sale.profiles[0]?.full_name || 'Unknown User' : sale.profiles?.full_name || 'Unknown User',
+        app_name: sale.apps?.name || 'Unknown App',
+        user_email: sale.profiles?.full_name || 'Unknown User',
         amount: sale.amount,
-        plan_name: Array.isArray(sale.pricing_plans) ? sale.pricing_plans[0]?.name || 'Unknown Plan' : sale.pricing_plans?.name || 'Unknown Plan',
+        plan_name: sale.pricing_plans?.name || 'Unknown Plan',
         created_at: sale.created_at
       })) || []);
 
-      // Fetch top apps
-      const { data: topAppsData } = await supabase
-        .from('apps')
-        .select('name, downloads, rating')
-        .eq('status', 'active')
-        .order('downloads', { ascending: false })
-        .limit(4);
-
-      setTopApps(topAppsData?.map(app => ({
-        name: app.name,
-        downloads: app.downloads || 0,
-        rating: app.rating || 0,
-        revenue: 0 // This would need to be calculated from orders
-      })) || []);
+      setStats({
+        totalUsers: userCount || 0,
+        totalApps: appCount || 0,
+        totalRevenue,
+        monthlyGrowth: 12.5 // This would be calculated based on actual data
+      });
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
-      setLoading(false);
+      setLoadingStats(false);
     }
   };
 
-  if (profile?.role !== 'admin') {
+  if (loading || loadingStats) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-6 pt-24 pb-12">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Access Denied</h1>
-            <p className="text-muted-foreground">You don't have permission to access this page.</p>
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading admin dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-6 pt-24 pb-12">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+  if (!user || profile?.role !== 'admin') {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      
-      <main className="container mx-auto px-6 pt-24 pb-12">
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold gradient-text mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage your SaaS marketplace and monitor performance
-          </p>
+          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {profile?.full_name || user.email}</p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-          <Card className="glass-card">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-neon-blue" />
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+12% from last month</p>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <p className="text-xs text-muted-foreground">
+                Registered users
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Apps</CardTitle>
-              <Package className="h-4 w-4 text-neon-green" />
+              <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalApps}</div>
-              <p className="text-xs text-muted-foreground">+3 new this month</p>
+              <p className="text-xs text-muted-foreground">
+                Published applications
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-yellow-500" />
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.monthlyRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+25% from last month</p>
+              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">
+                All-time revenue
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-              <Activity className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium">Growth</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
-              <p className="text-xs text-muted-foreground">+8% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Downloads</CardTitle>
-              <Download className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalDownloads.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+18% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Rating</CardTitle>
-              <Star className="h-4 w-4 text-yellow-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.avgRating}</div>
-              <p className="text-xs text-muted-foreground">+0.2 from last month</p>
+              <div className="text-2xl font-bold">+{stats.monthlyGrowth}%</div>
+              <p className="text-xs text-muted-foreground">
+                vs last month
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="sales" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="sales">Recent Sales</TabsTrigger>
-            <TabsTrigger value="apps">Top Apps</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common administrative tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={() => navigate('/admin/apps')} 
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Package className="mr-2 h-4 w-4" />
+                Manage Apps
+              </Button>
+              <Button 
+                onClick={() => navigate('/admin/users')} 
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Manage Users
+              </Button>
+              <Button 
+                onClick={() => navigate('/admin/updates')} 
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                Send Updates
+              </Button>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="sales">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Recent Sales</CardTitle>
-                <CardDescription>
-                  Latest purchases from your SaaS marketplace
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Recent Sales</CardTitle>
+              <CardDescription>Latest purchases and subscriptions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentSales.length > 0 ? (
+                <div className="space-y-3">
                   {recentSales.map((sale) => (
-                    <div key={sale.id} className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
-                      <div>
+                    <div key={sale.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="space-y-1">
                         <p className="font-medium">{sale.app_name}</p>
-                        <p className="text-sm text-muted-foreground">{sale.user_email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {sale.user_email} • {sale.plan_name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${sale.amount}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(sale.created_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">${sale.amount.toFixed(2)}</p>
-                        <Badge variant="secondary">{sale.plan_name}</Badge>
-                      </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="apps">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Top Performing Apps</CardTitle>
-                <CardDescription>
-                  Your best performing SaaS applications this month
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {topApps.map((app, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
-                      <div>
-                        <p className="font-medium">{app.name}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>{app.downloads} downloads</span>
-                          <span>★ {app.rating}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-neon-green">${app.revenue.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">revenue</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle>User Growth</CardTitle>
-                  <CardDescription>Monthly user acquisition</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">Chart will be implemented with Recharts</p>
-                </CardContent>
-              </Card>
-
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle>Revenue Trends</CardTitle>
-                  <CardDescription>Monthly revenue growth</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">Chart will be implemented with Recharts</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <div className="mt-8 flex justify-center space-x-4">
-          <Button asChild>
-            <a href="/admin/apps">Manage Apps</a>
-          </Button>
-          <Button variant="outline" asChild>
-            <a href="/admin/users">Manage Users</a>
-          </Button>
-          <Button variant="outline" asChild>
-            <a href="/admin/updates">Push Updates</a>
-          </Button>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">No recent sales</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </main>
-
-      <Footer />
+      </div>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { NavBar } from "@/components/ui/tubelight-navbar";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { 
   Home, 
   User, 
@@ -20,6 +21,7 @@ import {
 const Navigation = () => {
   const { user, profile, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const navigate = useNavigate();
 
   const publicNavItems = [
     { name: 'Home', url: '/', icon: Home },
@@ -56,9 +58,14 @@ const Navigation = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleGetStarted = () => {
+    navigate('/auth');
   };
 
   return (
@@ -83,12 +90,23 @@ const Navigation = () => {
               </Button>
             </div>
           ) : (
-            <Button
-              onClick={() => setShowAuthModal(true)}
-              className="neon-glow"
-            >
-              Sign In
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAuthModal(true)}
+                className="hidden md:flex"
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={handleGetStarted}
+                className="neon-glow"
+                size="sm"
+              >
+                Get Started
+              </Button>
+            </div>
           )}
         </div>
       </div>

@@ -44,7 +44,7 @@ const Navigation = () => {
   const adminNavItems = [
     { name: 'Home', url: '/', icon: Home },
     { name: 'Dashboard', url: '/dashboard', icon: Settings },
-    { name: 'Admin', url: '/admin/dashboard', icon: Settings },
+    { name: 'Admin', url: '/admin', icon: Settings },
     { name: 'Browse Apps', url: '/buysaas', icon: Package },
     { name: 'Services', url: '/services', icon: Briefcase }
   ];

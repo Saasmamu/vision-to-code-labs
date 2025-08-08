@@ -13,9 +13,12 @@ import Contact from "./pages/Contact";
 import Portfolio from "./pages/Portfolio";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminApps from "./pages/admin/AdminApps";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminReviews from "./pages/admin/AdminReviews";
 import AdminUpdates from "./pages/admin/AdminUpdates";
 import BuySaaS from "./pages/BuySaaS";
 import AppDetail from "./pages/AppDetail";
@@ -41,10 +44,18 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/buysaas" element={<BuySaaS />} />
               <Route path="/buysaas/:slug" element={<AppDetail />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/apps" element={<AdminApps />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/updates" element={<AdminUpdates />} />
+              
+              {/* Admin routes with AdminLayout */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="apps" element={<AdminApps />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="reviews" element={<AdminReviews />} />
+                <Route path="updates" element={<AdminUpdates />} />
+              </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

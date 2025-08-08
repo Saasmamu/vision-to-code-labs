@@ -33,15 +33,6 @@ interface RecentSale {
   created_at: string;
 }
 
-interface OrderData {
-  id: string;
-  amount: number;
-  created_at: string;
-  apps: { name: string } | null;
-  pricing_plans: { name: string } | null;
-  profiles: { full_name: string } | null;
-}
-
 const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
@@ -85,7 +76,7 @@ const AdminDashboard = () => {
 
       const totalRevenue = revenueData?.reduce((sum, order) => sum + (order.amount || 0), 0) || 0;
 
-      // Fetch recent sales with proper joins
+      // Fetch recent sales with proper joins - fix the type issue
       const { data: salesData } = await supabase
         .from('orders')
         .select(`
@@ -100,20 +91,23 @@ const AdminDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      setRecentSales((salesData as OrderData[])?.map(sale => ({
+      // Transform the data properly
+      const transformedSales = salesData?.map(sale => ({
         id: sale.id,
-        app_name: sale.apps?.name || 'Unknown App',
-        user_email: sale.profiles?.full_name || 'Unknown User',
+        app_name: (sale.apps as any)?.name || 'Unknown App',
+        user_email: (sale.profiles as any)?.full_name || 'Unknown User',
         amount: sale.amount,
-        plan_name: sale.pricing_plans?.name || 'Unknown Plan',
+        plan_name: (sale.pricing_plans as any)?.name || 'Unknown Plan',
         created_at: sale.created_at
-      })) || []);
+      })) || [];
+
+      setRecentSales(transformedSales);
 
       setStats({
         totalUsers: userCount || 0,
         totalApps: appCount || 0,
         totalRevenue,
-        monthlyGrowth: 12.5 // This would be calculated based on actual data
+        monthlyGrowth: 12.5
       });
 
     } catch (error) {
